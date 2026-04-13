@@ -4,6 +4,7 @@ and language-specific best-practice enrichment."""
 from __future__ import annotations
 
 import re
+from typing import Any
 
 from src.tools.analyze_prompt import analyze_prompt
 from src.tools.diff_utils import compute_prompt_diff
@@ -144,7 +145,7 @@ def optimize_prompt(
     prompt: str,
     context: str | None = None,
     language: str | None = None,
-) -> dict:
+) -> dict[str, Any]:
     """Optimize a prompt by applying deterministic improvement rules.
 
     Steps applied in order:

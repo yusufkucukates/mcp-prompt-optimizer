@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import math
+from typing import Any
 
 # ---------------------------------------------------------------------------
 # Language configuration registry
@@ -182,7 +183,7 @@ def generate_code_prompt(
     language: str,
     framework: str | None = None,
     style_guide: str | None = None,
-) -> dict:
+) -> dict[str, Any]:
     """Generate a production-ready prompt for a code generation task.
 
     The prompt includes: role definition, objective, framework context,
@@ -220,7 +221,7 @@ def generate_code_prompt(
     sections: list[str] = []
 
     # 1 — Role definition
-    role = config["role_prefix"]
+    role = str(config["role_prefix"])
     if framework:
         role = f"{role} You have extensive experience with {framework}."
     sections.append(role)

@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import re
+from typing import Any
 
 # ---------------------------------------------------------------------------
 # Scoring dimension definitions
@@ -121,7 +122,7 @@ def _score_dimension(text: str, dimension: str) -> int:
     return min(10, raw_score)
 
 
-def analyze_prompt(prompt: str) -> dict:
+def analyze_prompt(prompt: str) -> dict[str, Any]:
     """Analyze a prompt and score it across 5 quality dimensions.
 
     Each dimension is scored 0-10. Weak dimensions (score < 5) are flagged

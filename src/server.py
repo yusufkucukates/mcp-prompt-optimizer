@@ -15,6 +15,7 @@ import mcp.server.stdio
 import mcp.types as types
 from mcp.server.lowlevel import NotificationOptions, Server
 from mcp.server.models import InitializationOptions
+from pydantic import AnyUrl
 
 from src.resources.template_manager import TemplateManager
 from src.tools.analyze_prompt import analyze_prompt
@@ -209,13 +210,13 @@ TOOL_DEFINITIONS: list[types.Tool] = [
 # ---------------------------------------------------------------------------
 
 
-@server.list_tools()
+@server.list_tools()  # type: ignore[no-untyped-call, untyped-decorator]
 async def handle_list_tools() -> list[types.Tool]:
     """Return the list of available tools."""
     return TOOL_DEFINITIONS
 
 
-@server.call_tool()
+@server.call_tool()  # type: ignore[untyped-decorator]
 async def handle_call_tool(
     name: str,
     arguments: dict[str, Any],
@@ -241,7 +242,7 @@ async def handle_call_tool(
         ]
 
 
-def _dispatch_tool(name: str, arguments: dict[str, Any]) -> dict:
+def _dispatch_tool(name: str, arguments: dict[str, Any]) -> dict[str, Any]:
     """Route a tool call to the appropriate pure function.
 
     Args:
@@ -323,13 +324,13 @@ def _require_fields(arguments: dict[str, Any], fields: list[str], tool_name: str
 # ---------------------------------------------------------------------------
 
 
-@server.list_resources()
+@server.list_resources()  # type: ignore[no-untyped-call, untyped-decorator]
 async def handle_list_resources() -> list[types.Resource]:
     """Return all available prompt template resources."""
     templates = template_manager.list_templates()
     return [
         types.Resource(
-            uri=types.AnyUrl(t["uri"]),  # type: ignore[arg-type]
+            uri=AnyUrl(t["uri"]),
             name=t["name"],
             mimeType=t["mime_type"],
             description=f"Prompt template: {t['name'].replace('_', ' ').title()}",
@@ -338,8 +339,8 @@ async def handle_list_resources() -> list[types.Resource]:
     ]
 
 
-@server.read_resource()
-async def handle_read_resource(uri: types.AnyUrl) -> str:
+@server.read_resource()  # type: ignore[no-untyped-call, untyped-decorator]
+async def handle_read_resource(uri: AnyUrl) -> str:
     """Return the markdown content of a prompt template resource.
 
     Args:

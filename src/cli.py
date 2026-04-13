@@ -27,6 +27,7 @@ import argparse
 import json
 import sys
 import textwrap
+from typing import Any
 
 from src.tools.analyze_prompt import analyze_prompt
 from src.tools.optimize_loop import (
@@ -69,7 +70,7 @@ def _score_bar(score: int, total: int = 50, width: int = 20) -> str:
 # ---------------------------------------------------------------------------
 
 
-def _print_analysis(result: dict) -> None:
+def _print_analysis(result: dict[str, Any]) -> None:
     score = result["total_score"]
     colour = _GREEN if score >= 35 else _YELLOW if score >= 20 else _RED
     print(f"\n{_BOLD}Prompt Analysis{_RESET}")
@@ -82,7 +83,7 @@ def _print_analysis(result: dict) -> None:
         print(f"  Weak  : {_colour(', '.join(result['weak_spots']), _YELLOW)}")
 
 
-def _print_one_shot(result: dict) -> None:
+def _print_one_shot(result: dict[str, Any]) -> None:
     before = result["score_before"]
     after = result["score_after"]
     delta = after - before
@@ -112,7 +113,7 @@ def _print_one_shot(result: dict) -> None:
     print(textwrap.indent(result["optimized_prompt"], "  "))
 
 
-def _print_loop(result: dict) -> None:
+def _print_loop(result: dict[str, Any]) -> None:
     initial = result["initial_score"]
     final = result["final_score"]
     total = result["total_improvement"]
@@ -293,7 +294,7 @@ def main() -> None:
 
 def _run_json_mode(args: argparse.Namespace, prompt_text: str) -> None:
     """Emit a single JSON object to stdout."""
-    payload: dict = {}
+    payload: dict[str, Any] = {}
 
     if args.analyze:
         payload["analysis"] = analyze_prompt(prompt_text)

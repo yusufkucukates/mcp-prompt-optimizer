@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import re
 from dataclasses import dataclass, field
+from typing import Any
 
 # ---------------------------------------------------------------------------
 # Complexity estimation keyword sets
@@ -227,7 +228,7 @@ class Subtask:
     dependencies: list[str] = field(default_factory=list)
     estimated_complexity: str = "medium"
 
-    def to_dict(self) -> dict:
+    def to_dict(self) -> dict[str, Any]:
         """Serialise to a plain dict."""
         return {
             "id": self.id,
@@ -282,7 +283,7 @@ def _topological_order(subtasks: list[Subtask]) -> list[str]:
     return visited
 
 
-def decompose_task(task: str, agent_type: str = "generic") -> dict:
+def decompose_task(task: str, agent_type: str = "generic") -> dict[str, Any]:
     """Break a complex task into sequential, atomic subtasks.
 
     Args:

@@ -5,6 +5,7 @@ maximum iteration cap is hit."""
 from __future__ import annotations
 
 from dataclasses import dataclass, field
+from typing import Any
 
 from src.tools.analyze_prompt import analyze_prompt
 from src.tools.diff_utils import compute_prompt_diff
@@ -43,7 +44,7 @@ class LoopIteration:
     changes: list[str]
     diff: str
 
-    def to_dict(self) -> dict:
+    def to_dict(self) -> dict[str, Any]:
         return {
             "round": self.round,
             "prompt": self.prompt,
@@ -68,7 +69,7 @@ class LoopResult:
     stopped_reason: str
     history: list[LoopIteration] = field(default_factory=list)
 
-    def to_dict(self) -> dict:
+    def to_dict(self) -> dict[str, Any]:
         return {
             "final_prompt": self.final_prompt,
             "initial_score": self.initial_score,
@@ -94,7 +95,7 @@ def optimize_prompt_loop(
     target_score: int = 40,
     max_iterations: int = 5,
     min_improvement: int = 2,
-) -> dict:
+) -> dict[str, Any]:
     """Iteratively optimise a prompt until it is "good enough".
 
     Runs repeated rounds of :func:`optimize_prompt` and
