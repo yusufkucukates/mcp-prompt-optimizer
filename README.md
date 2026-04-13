@@ -1,6 +1,7 @@
 # mcp-prompt-optimizer
 
 [![CI](https://github.com/yusufkucukates/mcp-prompt-optimizer/actions/workflows/ci.yml/badge.svg)](https://github.com/yusufkucukates/mcp-prompt-optimizer/actions/workflows/ci.yml)
+[![PyPI](https://img.shields.io/pypi/v/prompt-optimizer-mcp)](https://pypi.org/project/prompt-optimizer-mcp/)
 [![Python](https://img.shields.io/badge/python-3.11%2B-blue)](https://www.python.org/)
 [![License: MIT](https://img.shields.io/badge/license-MIT-green)](LICENSE)
 [![Works with Claude Code](https://img.shields.io/badge/Claude_Code-compatible-blueviolet)](https://docs.anthropic.com/en/docs/claude-code)
@@ -49,7 +50,10 @@ Constraints:
 ## Quick Install
 
 ```bash
-# Clone and install locally (PyPI publish coming soon)
+# Install from PyPI
+pip install prompt-optimizer-mcp
+
+# Or clone and install locally
 git clone https://github.com/yusufkucukates/mcp-prompt-optimizer
 cd mcp-prompt-optimizer
 pip install -e .
