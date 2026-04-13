@@ -1,0 +1,74 @@
+# Cursor AI Rules — prompt-optimizer-mcp
+#
+# This file is committed and shared with all contributors.
+# Cursor applies these rules automatically when assisting in this repository.
+
+## Data models
+
+- Always use TypedDict for MCP tool input and output shapes, not plain `dict`.
+  Tool functions that currently return `dict` are legacy; new code must use TypedDict.
+- Tool input schemas in `src/server.py` (`TOOL_SCHEMAS`) must stay in sync with the
+  corresponding TypedDict definitions.
+
+## Import boundaries
+
+- Tool modules in `src/tools/` must NEVER import from `src/server.py`.
+  Doing so creates a circular import that silently breaks tool registration.
+- Tool modules may import from each other (e.g. `optimize_loop` imports `optimize_prompt`).
+- `src/cli.py` may import from `src/tools/` but must NOT import `src/server.py`.
+
+## Test requirements
+
+- Every new MCP tool added to `src/server.py` must have a corresponding test class in
+  `tests/`. The test file must cover: return structure, key edge cases, and input validation.
+- Tests must only call pure tool functions — never the MCP server or its handlers directly.
+
+## Determinism
+
+- All prompt optimization functions must be deterministic: same input → same output.
+- Do NOT introduce `random`, `uuid`, `datetime.now()`, or any non-deterministic source
+  inside `src/tools/`.
+- The optimization loop `optimize_prompt_loop` terminates by design; do not add
+  probabilistic early-exit conditions.
+
+## Template files
+
+- Files in `templates/*.md` are user-facing prompt templates.
+- Write them in clear, imperative English. Avoid jargon.
+- Use Markdown headings and bullet lists for structure.
+- Template filenames must use `snake_case` — no hyphens, no spaces.
+- New templates are automatically exposed as MCP resources; no server code changes needed.
+
+## Code extension preference
+
+- Prefer extending an existing function (adding a parameter, widening a return type)
+  over creating a new file for small changes.
+- Only create a new module when the functionality is clearly orthogonal to everything
+  that exists (e.g. `diff_utils.py` was correct; a new `analyze_v2.py` would not be).
+
+## Scoring invariant
+
+- The scorer has exactly 5 dimensions in `DIMENSION_CHECKS` in `src/tools/analyze_prompt.py`.
+- After any change to `DIMENSION_CHECKS`, verify that `total_score` is still the sum of
+  5 per-dimension scores (0-10 each, max 50). Add an assertion if unsure.
+- Do not silently change the number of dimensions — tests assert `len(result["dimensions"]) == 5`.
+
+## Logging discipline
+
+- Never use `print()` in any file under `src/` without `file=sys.stderr`.
+- Stdout is the MCP stdio transport channel; any text sent there corrupts the JSON-RPC stream.
+- The correct pattern: `print("message", file=sys.stderr)`.
+- In tests, `print()` is fine.
+
+## Error handling
+
+- Tool functions raise `TypeError` for wrong-type inputs, `ValueError` for empty/invalid values.
+- `src/server.py` catches all exceptions in `handle_call_tool` and returns them as
+  `{"error": str(exc), "tool": name}` JSON — never re-raise inside the handler.
+
+## Language aliases
+
+- The alias map lives in `src/tools/generate_code_prompt.py` (`_LANGUAGE_ALIASES`).
+- When adding a new language to `LANGUAGE_CONFIG`, also add its common aliases here.
+- `optimize_prompt.py` imports `_LANGUAGE_ALIASES` from `generate_code_prompt` — keep this
+  single source of truth; do not duplicate the map.
