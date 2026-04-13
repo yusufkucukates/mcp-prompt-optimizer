@@ -24,6 +24,7 @@ Usage examples::
 from __future__ import annotations
 
 import argparse
+import asyncio
 import json
 import sys
 import textwrap
@@ -300,20 +301,20 @@ def _run_json_mode(args: argparse.Namespace, prompt_text: str) -> None:
         payload["analysis"] = analyze_prompt(prompt_text)
 
     if args.loop:
-        payload["loop"] = optimize_prompt_loop(
+        payload["loop"] = asyncio.run(optimize_prompt_loop(
             prompt=prompt_text,
             language=args.language,
             context=args.context,
             target_score=args.target_score,
             max_iterations=args.max_iterations,
             min_improvement=args.min_improvement,
-        )
+        ))
     else:
-        payload["optimization"] = optimize_prompt(
+        payload["optimization"] = asyncio.run(optimize_prompt(
             prompt=prompt_text,
             language=args.language,
             context=args.context,
-        )
+        ))
 
     print(json.dumps(payload, indent=2))
 
@@ -325,21 +326,21 @@ def _run_text_mode(args: argparse.Namespace, prompt_text: str) -> None:
         _print_analysis(analysis)
 
     if args.loop:
-        result = optimize_prompt_loop(
+        result = asyncio.run(optimize_prompt_loop(
             prompt=prompt_text,
             language=args.language,
             context=args.context,
             target_score=args.target_score,
             max_iterations=args.max_iterations,
             min_improvement=args.min_improvement,
-        )
+        ))
         _print_loop(result)
     else:
-        result = optimize_prompt(
+        result = asyncio.run(optimize_prompt(
             prompt=prompt_text,
             language=args.language,
             context=args.context,
-        )
+        ))
         _print_one_shot(result)
 
     print()

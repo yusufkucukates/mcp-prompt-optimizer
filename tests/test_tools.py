@@ -10,7 +10,7 @@ import pytest
 from src.tools.analyze_prompt import analyze_prompt
 from src.tools.decompose_task import decompose_task
 from src.tools.generate_code_prompt import generate_code_prompt
-from src.tools.optimize_prompt import optimize_prompt
+from src.tools.optimize_prompt import optimize_prompt  # async since v0.2.0
 
 # ---------------------------------------------------------------------------
 # Shared prompt fixtures
@@ -36,9 +36,19 @@ class TestAnalyzePrompt:
     def test_returns_required_keys(self) -> None:
         result = analyze_prompt(WELL_STRUCTURED_PROMPT)
         assert "total_score" in result
+        assert "score_normalized" in result
         assert "dimensions" in result
         assert "weak_spots" in result
         assert "suggestions" in result
+
+    def test_score_normalized_is_0_to_100(self) -> None:
+        result = analyze_prompt(WELL_STRUCTURED_PROMPT)
+        assert 0 <= result["score_normalized"] <= 100
+
+    def test_score_normalized_proportional_to_total(self) -> None:
+        result = analyze_prompt(WELL_STRUCTURED_PROMPT)
+        expected = round(result["total_score"] / 50 * 100)
+        assert result["score_normalized"] == expected
 
     def test_dimensions_contain_all_five(self) -> None:
         result = analyze_prompt(WELL_STRUCTURED_PROMPT)
@@ -93,84 +103,87 @@ class TestAnalyzePrompt:
 # ---------------------------------------------------------------------------
 
 class TestOptimizePrompt:
-    def test_returns_required_keys(self) -> None:
-        result = optimize_prompt("fix stuff")
+    async def test_returns_required_keys(self) -> None:
+        result = await optimize_prompt("fix stuff")
         assert "optimized_prompt" in result
         assert "changes_summary" in result
         assert "score_before" in result
         assert "score_after" in result
+        assert "score_normalized_before" in result
+        assert "score_normalized_after" in result
+        assert "engine_used" in result
+        assert result["engine_used"] == "rules"
 
-    def test_improves_score_for_vague_prompt(self) -> None:
-        result = optimize_prompt(VAGUE_PROMPT)
+    async def test_improves_score_for_vague_prompt(self) -> None:
+        result = await optimize_prompt(VAGUE_PROMPT)
         assert result["score_after"] >= result["score_before"], (
             f"score_after={result['score_after']} should be >= score_before={result['score_before']}"
         )
 
-    def test_changes_summary_is_non_empty(self) -> None:
-        result = optimize_prompt(VAGUE_PROMPT)
+    async def test_changes_summary_is_non_empty(self) -> None:
+        result = await optimize_prompt(VAGUE_PROMPT)
         assert isinstance(result["changes_summary"], list)
         assert len(result["changes_summary"]) > 0
 
-    def test_vague_words_are_replaced(self) -> None:
-        result = optimize_prompt("Please do something with the stuff in the repo.")
+    async def test_vague_words_are_replaced(self) -> None:
+        result = await optimize_prompt("Please do something with the stuff in the repo.")
         prompt = result["optimized_prompt"].lower()
         assert "something" not in prompt or "a specific output" in prompt
 
-    def test_language_python_injects_hints(self) -> None:
-        result = optimize_prompt("write a data pipeline", language="python")
+    async def test_language_python_injects_hints(self) -> None:
+        result = await optimize_prompt("write a data pipeline", language="python")
         prompt = result["optimized_prompt"].lower()
         assert any(
             term in prompt
             for term in ["type hints", "pep 8", "docstring", "pytest", "python"]
         )
 
-    def test_language_dotnet_injects_hints(self) -> None:
-        result = optimize_prompt("build an API", language="dotnet")
+    async def test_language_dotnet_injects_hints(self) -> None:
+        result = await optimize_prompt("build an API", language="dotnet")
         prompt = result["optimized_prompt"].lower()
         assert any(
             term in prompt
             for term in ["async", "solid", "nullable", "dependency injection", "c#"]
         )
 
-    def test_context_appears_in_optimized_prompt(self) -> None:
+    async def test_context_appears_in_optimized_prompt(self) -> None:
         ctx = "We are migrating a legacy monolith to microservices."
-        result = optimize_prompt("refactor the user service", context=ctx)
+        result = await optimize_prompt("refactor the user service", context=ctx)
         assert ctx in result["optimized_prompt"]
 
-    def test_role_is_prepended_when_absent(self) -> None:
-        result = optimize_prompt("List the top five sorting algorithms.")
+    async def test_role_is_prepended_when_absent(self) -> None:
+        result = await optimize_prompt("List the top five sorting algorithms.")
         prompt = result["optimized_prompt"].lower()
         assert any(kw in prompt for kw in ["you are", "act as", "engineer", "expert"])
 
-    def test_score_before_matches_analyze_score(self) -> None:
+    async def test_score_before_matches_analyze_score(self) -> None:
         analysis = analyze_prompt(VAGUE_PROMPT)
-        result = optimize_prompt(VAGUE_PROMPT)
+        result = await optimize_prompt(VAGUE_PROMPT)
         assert result["score_before"] == analysis["total_score"]
 
-    def test_well_structured_prompt_has_no_breaking_changes(self) -> None:
-        result = optimize_prompt(WELL_STRUCTURED_PROMPT)
-        # Objective part should still be present in optimized version
+    async def test_well_structured_prompt_has_no_breaking_changes(self) -> None:
+        result = await optimize_prompt(WELL_STRUCTURED_PROMPT)
         assert "FastAPI" in result["optimized_prompt"]
 
-    def test_type_error_on_non_string_prompt(self) -> None:
+    async def test_type_error_on_non_string_prompt(self) -> None:
         with pytest.raises(TypeError, match="prompt must be a string"):
-            optimize_prompt(42)  # type: ignore[arg-type]
+            await optimize_prompt(42)  # type: ignore[arg-type]
 
-    def test_value_error_on_empty_prompt(self) -> None:
+    async def test_value_error_on_empty_prompt(self) -> None:
         with pytest.raises(ValueError, match="empty or whitespace"):
-            optimize_prompt("")
+            await optimize_prompt("")
 
-    def test_value_error_on_whitespace_only_prompt(self) -> None:
+    async def test_value_error_on_whitespace_only_prompt(self) -> None:
         with pytest.raises(ValueError, match="empty or whitespace"):
-            optimize_prompt("   \n\t  ")
+            await optimize_prompt("   \n\t  ")
 
-    def test_language_alias_csharp_resolves_to_dotnet(self) -> None:
-        result = optimize_prompt("build an API", language="c#")
+    async def test_language_alias_csharp_resolves_to_dotnet(self) -> None:
+        result = await optimize_prompt("build an API", language="c#")
         prompt = result["optimized_prompt"].lower()
         assert any(term in prompt for term in ["async", "solid", "nullable", "c#", ".net"])
 
-    def test_language_alias_js_resolves_to_typescript(self) -> None:
-        result = optimize_prompt("build a frontend", language="js")
+    async def test_language_alias_js_resolves_to_typescript(self) -> None:
+        result = await optimize_prompt("build a frontend", language="js")
         prompt = result["optimized_prompt"].lower()
         assert any(term in prompt for term in ["typescript", "strict", "jest", "eslint"])
 

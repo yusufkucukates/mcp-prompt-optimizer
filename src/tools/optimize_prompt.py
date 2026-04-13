@@ -1,14 +1,16 @@
 """Core prompt optimization logic: vague-word replacement, structure injection,
-and language-specific best-practice enrichment."""
+language-specific best-practice enrichment, and optional LLM enhancement."""
 
 from __future__ import annotations
 
 import re
 from typing import Any
 
+from src.llm.base import LLMProvider
 from src.tools.analyze_prompt import analyze_prompt
 from src.tools.diff_utils import compute_prompt_diff
 from src.tools.generate_code_prompt import _LANGUAGE_ALIASES
+from src.tools.validation import validate_prompt
 
 # ---------------------------------------------------------------------------
 # Vague-word replacement rules: (regex_pattern, replacement, description)
@@ -141,48 +143,17 @@ _CONSTRAINT_PATTERN = re.compile(
 )
 
 
-def optimize_prompt(
+def _apply_rules(
     prompt: str,
-    context: str | None = None,
-    language: str | None = None,
-) -> dict[str, Any]:
-    """Optimize a prompt by applying deterministic improvement rules.
-
-    Steps applied in order:
-    1. Score the original prompt.
-    2. Replace vague words with specific alternatives.
-    3. Prepend a role definition if none exists.
-    4. Inject context section if ``context`` is provided.
-    5. Append language-specific best practices if ``language`` is provided.
-    6. Append output format instruction if none detected.
-    7. Append constraint section for very short prompts without constraints.
-    8. Re-score the optimized prompt.
-
-    Args:
-        prompt: The original prompt text.
-        context: Optional background context to inject.
-        language: Optional programming language key (dotnet, python, go, java, typescript).
+    context: str | None,
+    language: str | None,
+) -> tuple[str, list[str]]:
+    """Apply all deterministic rule-engine transformations.
 
     Returns:
-        A dict with keys:
-            optimized_prompt (str): The improved prompt.
-            changes_summary (list[str]): Human-readable list of changes made.
-            score_before (int): Total quality score before optimization.
-            score_after (int): Total quality score after optimization.
-
-    Raises:
-        TypeError: If ``prompt`` is not a string.
-        ValueError: If ``prompt`` is empty or whitespace-only.
+        Tuple of (working_prompt, changes_list).
     """
-    if not isinstance(prompt, str):
-        raise TypeError(f"prompt must be a string, got {type(prompt).__name__!r}")
-    if not prompt.strip():
-        raise ValueError("prompt must not be empty or whitespace-only")
-    original = prompt.strip()
-    analysis_before = analyze_prompt(original)
-    score_before: int = analysis_before["total_score"]
-
-    working = original
+    working = prompt
     changes: list[str] = []
 
     # Step 1 — Vague word replacement
@@ -208,9 +179,9 @@ def optimize_prompt(
 
     # Step 4 — Language-specific best practices
     raw_lang4 = (language or "").lower().strip()
-    lang_key = _LANGUAGE_ALIASES.get(raw_lang4, raw_lang4)
-    if lang_key and lang_key in LANGUAGE_HINTS:
-        lang_info = LANGUAGE_HINTS[lang_key]
+    lang_key4 = _LANGUAGE_ALIASES.get(raw_lang4, raw_lang4)
+    if lang_key4 and lang_key4 in LANGUAGE_HINTS:
+        lang_info = LANGUAGE_HINTS[lang_key4]
         practices_block = (
             f"\n\n{lang_info['label']} Best Practices to Follow:\n"
             + "\n".join(f"- {p}" for p in lang_info["practices"])
@@ -232,13 +203,86 @@ def optimize_prompt(
     if not changes:
         changes.append("No changes needed — prompt was already well-structured")
 
+    return working, changes
+
+
+async def optimize_prompt(
+    prompt: str,
+    context: str | None = None,
+    language: str | None = None,
+    provider: LLMProvider | None = None,
+    llm_threshold: int = 80,
+) -> dict[str, Any]:
+    """Optimize a prompt using the rule engine, optionally enhanced by an LLM.
+
+    Layer 1 (always runs): deterministic rule-engine transformations.
+    Layer 2 (optional): LLM enhancement when score_normalized < llm_threshold
+    and a provider is supplied.
+
+    If the LLM call fails for any reason, the function falls back gracefully
+    to the rule-engine result without raising an exception.
+
+    Args:
+        prompt: The original prompt text.
+        context: Optional background context to inject.
+        language: Optional programming language key (dotnet, python, go, java, typescript).
+        provider: Optional :class:`LLMProvider` instance. When ``None`` (the
+                  default), only the rule engine runs.
+        llm_threshold: Normalized score (0-100) below which the LLM layer is
+                       triggered. Default: 80.
+
+    Returns:
+        A dict with keys:
+            optimized_prompt (str): The improved prompt.
+            changes_summary (list[str]): Human-readable list of changes made.
+            score_before (int): Total quality score before optimization (0-50).
+            score_after (int): Total quality score after optimization (0-50).
+            score_normalized_before (int): Normalized score before (0-100).
+            score_normalized_after (int): Normalized score after (0-100).
+            engine_used (str): "rules" or "hybrid".
+            diff (str): Unified diff between original and optimized prompt.
+
+    Raises:
+        TypeError: If ``prompt`` is not a string.
+        ValueError: If ``prompt`` is empty or whitespace-only.
+    """
+    original = validate_prompt(prompt)
+    analysis_before = analyze_prompt(original)
+    score_before: int = analysis_before["total_score"]
+    score_norm_before: int = analysis_before["score_normalized"]
+
+    # --- Layer 1: Rule engine ---
+    working, changes = _apply_rules(original, context, language)
     analysis_after = analyze_prompt(working)
     score_after: int = analysis_after["total_score"]
+    score_norm_after: int = analysis_after["score_normalized"]
+    engine_used = "rules"
+
+    # --- Layer 2: LLM enhancement (optional) ---
+    if provider is not None and score_norm_after < llm_threshold:
+        weak_dims: list[str] = analysis_after.get("weak_spots", [])
+        dim_scores: dict[str, int] = analysis_after.get("dimensions", {})
+        llm_result = await provider.enhance_prompt(
+            original=original,
+            rule_output=working,
+            weak_dimensions=weak_dims,
+            scores=dim_scores,
+        )
+        if llm_result.enhanced_prompt and llm_result.enhanced_prompt != working:
+            working = llm_result.enhanced_prompt
+            changes.append(f"LLM enhancement ({llm_result.model_used}): {llm_result.explanation}")
+            analysis_after = analyze_prompt(working)
+            score_after = analysis_after["total_score"]
+            score_norm_after = analysis_after["score_normalized"]
+            engine_used = "hybrid"
 
     return {
         "optimized_prompt": working,
         "changes_summary": changes,
         "score_before": score_before,
         "score_after": score_after,
+        "score_normalized_before": score_norm_before,
+        "score_normalized_after": score_norm_after,
+        "engine_used": engine_used,
         "diff": compute_prompt_diff(original, working),
     }

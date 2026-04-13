@@ -146,6 +146,7 @@ def analyze_prompt(prompt: str) -> dict[str, Any]:
     if not prompt or not prompt.strip():
         return {
             "total_score": 0,
+            "score_normalized": 0,
             "dimensions": {dim: 0 for dim in DIMENSION_CHECKS},
             "weak_spots": list(DIMENSION_CHECKS.keys()),
             "suggestions": list(DIMENSION_SUGGESTIONS.values()),
@@ -161,8 +162,11 @@ def analyze_prompt(prompt: str) -> dict[str, Any]:
     weak_spots = [dim for dim, score in dimensions.items() if score < 5]
     suggestions = [DIMENSION_SUGGESTIONS[dim] for dim in weak_spots]
 
+    score_normalized = round(total_score / 50 * 100)
+
     return {
         "total_score": total_score,
+        "score_normalized": score_normalized,
         "dimensions": dimensions,
         "weak_spots": weak_spots,
         "suggestions": suggestions,

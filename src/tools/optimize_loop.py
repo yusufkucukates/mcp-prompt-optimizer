@@ -7,9 +7,11 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from typing import Any
 
+from src.llm.base import LLMProvider
 from src.tools.analyze_prompt import analyze_prompt
 from src.tools.diff_utils import compute_prompt_diff
 from src.tools.optimize_prompt import optimize_prompt
+from src.tools.validation import validate_prompt
 
 # ---------------------------------------------------------------------------
 # Stop-reason constants (used in the returned dict and in tests)
@@ -67,6 +69,7 @@ class LoopResult:
     max_iterations: int
     target_score: int
     stopped_reason: str
+    engine_used: str = "rules"
     history: list[LoopIteration] = field(default_factory=list)
 
     def to_dict(self) -> dict[str, Any]:
@@ -74,11 +77,14 @@ class LoopResult:
             "final_prompt": self.final_prompt,
             "initial_score": self.initial_score,
             "final_score": self.final_score,
+            "score_normalized_before": round(self.initial_score / 50 * 100),
+            "score_normalized_after": round(self.final_score / 50 * 100),
             "total_improvement": self.total_improvement,
             "iterations_used": self.iterations_used,
             "max_iterations": self.max_iterations,
             "target_score": self.target_score,
             "stopped_reason": self.stopped_reason,
+            "engine_used": self.engine_used,
             "history": [it.to_dict() for it in self.history],
         }
 
@@ -88,13 +94,15 @@ class LoopResult:
 # ---------------------------------------------------------------------------
 
 
-def optimize_prompt_loop(
+async def optimize_prompt_loop(
     prompt: str,
     language: str | None = None,
     context: str | None = None,
     target_score: int = 40,
     max_iterations: int = 5,
     min_improvement: int = 2,
+    provider: LLMProvider | None = None,
+    llm_threshold: int = 80,
 ) -> dict[str, Any]:
     """Iteratively optimise a prompt until it is "good enough".
 
@@ -142,10 +150,7 @@ def optimize_prompt_loop(
         TypeError:  If ``prompt`` is not a string.
         ValueError: If ``prompt`` is empty/whitespace, or ``max_iterations < 1``.
     """
-    if not isinstance(prompt, str):
-        raise TypeError(f"prompt must be a string, got {type(prompt).__name__!r}")
-    if not prompt.strip():
-        raise ValueError("prompt must not be empty or whitespace-only")
+    validate_prompt(prompt)
     if max_iterations < 1:
         raise ValueError(f"max_iterations must be >= 1, got {max_iterations!r}")
 
@@ -167,6 +172,7 @@ def optimize_prompt_loop(
             max_iterations=max_iterations,
             target_score=target_score,
             stopped_reason=STOP_ALREADY_OPTIMAL,
+            engine_used="rules",
         ).to_dict()
 
     current_prompt = prompt
@@ -175,13 +181,19 @@ def optimize_prompt_loop(
     stall_count = 0
     stopped_reason = STOP_MAX_ITERATIONS
 
+    any_hybrid = False
+
     for round_num in range(1, max_iterations + 1):
         # Only pass context in the first round to avoid duplication
-        opt_result = optimize_prompt(
+        opt_result = await optimize_prompt(
             prompt=current_prompt,
             language=language,
             context=context if round_num == 1 else None,
+            provider=provider,
+            llm_threshold=llm_threshold,
         )
+        if opt_result.get("engine_used") == "hybrid":
+            any_hybrid = True
 
         new_prompt: str = opt_result["optimized_prompt"]
         new_score: int = opt_result["score_after"]
@@ -232,5 +244,6 @@ def optimize_prompt_loop(
         max_iterations=max_iterations,
         target_score=target_score,
         stopped_reason=stopped_reason,
+        engine_used="hybrid" if any_hybrid else "rules",
         history=history,
     ).to_dict()

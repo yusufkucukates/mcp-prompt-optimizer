@@ -1,315 +1,262 @@
-# prompt-optimizer-mcp
+# mcp-prompt-optimizer
 
 [![CI](https://github.com/yusufkucukates/mcp-prompt-optimizer/actions/workflows/ci.yml/badge.svg)](https://github.com/yusufkucukates/mcp-prompt-optimizer/actions/workflows/ci.yml)
-[![PyPI version](https://img.shields.io/pypi/v/prompt-optimizer-mcp.svg)](https://pypi.org/project/prompt-optimizer-mcp/)
-[![Python 3.11+](https://img.shields.io/badge/python-3.11%2B-blue.svg)](https://www.python.org/downloads/)
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
-[![Tests](https://img.shields.io/badge/tests-139%20passed-brightgreen.svg)](tests/)
+[![PyPI](https://img.shields.io/pypi/v/prompt-optimizer-mcp)](https://pypi.org/project/prompt-optimizer-mcp/)
+[![Python](https://img.shields.io/badge/python-3.11%2B-blue)](https://www.python.org/)
+[![License: MIT](https://img.shields.io/badge/license-MIT-green)](LICENSE)
+[![Works with Claude Code](https://img.shields.io/badge/Claude_Code-compatible-blueviolet)](https://docs.anthropic.com/en/docs/claude-code)
 
-**Stop feeding weak prompts to AI. This MCP server scores, rewrites, and iteratively optimizes your prompts — instantly, offline, zero API keys.**
+**The MCP server that turns vague AI prompts into production-ready instructions — works offline, gets smarter with an API key.**
 
-The only MCP server that shows you *exactly* how your prompt improved at every step, with measurable before/after scores and a line-by-line diff.
-
----
-
-## Demo
-
-> *Recording coming soon — see the [Before/After](#beforeafter) section for a live example.*
-
-```
-$ prompt-optimizer --loop "make an api for users" --language python
-
-Loop Optimization
-  Initial score : 5/50
-
-  Round 1  5/50  →  26/50  (+21 pts)
-    • Prepended role definition to establish agent persona
-    • Replaced 'make' → 'implement'
-    • Appended output format guidance
-
-  Round 2  26/50  →  38/50  (+12 pts)
-    • Injected Python-specific best practices (PEP 8, type hints, pytest)
-    • Appended default constraint section
-
-  Round 3  38/50  →  42/50  (+4 pts)
-    • Added TDD instruction
-
-  Final: 5/50  →  42/50  (+37 pts in 3 rounds)
-  Stopped: target score reached
-
-Optimized Prompt:
-  You are a senior Python engineer with expertise in clean architecture,
-  type-safe design, and Pythonic idioms.
-
-  Implement a specific output for users.
-  ...
-```
+Stop writing the same boilerplate prompt engineering by hand. This MCP server runs inside Claude Code, Cursor, and any MCP-compatible client. It scores, improves, and decomposes your prompts before they reach any model — so every AI call starts from a higher baseline.
 
 ---
 
-## Why This Exists
+## Before → After (real output)
 
-Every other prompt optimization tool requires an **LLM API key**, a vector database, or complex setup. This one needs none of that.
-
-| | prompt-optimizer-mcp | Competitors |
-|--|--|--|
-| **Setup** | `pip install` | API key + config |
-| **Speed** | Instant (pure Python) | LLM round-trip latency |
-| **Cost** | Free, forever | Per-call API cost |
-| **Offline** | Yes | No |
-| **Before/after score** | Yes, every round | No |
-| **Iterative loop** | Built-in, self-terminating | No |
-| **Language-aware** | 5 languages + aliases | No |
-
----
-
-## Install
-
-```bash
-pip install prompt-optimizer-mcp
-```
-
-Or install from source:
-
-```bash
-git clone https://github.com/yusufkucukates/mcp-prompt-optimizer.git
-cd mcp-prompt-optimizer
-pip install -e ".[dev]"
-```
-
----
-
-## Connect to Your AI Client
-
-<details>
-<summary><strong>Claude Code</strong></summary>
-
-Add to your `~/.claude/claude_desktop_config.json`:
-
-```json
-{
-  "mcpServers": {
-    "prompt-optimizer": {
-      "command": "prompt-optimizer-mcp"
-    }
-  }
-}
-```
-</details>
-
-<details>
-<summary><strong>Cursor</strong></summary>
-
-In Cursor settings → MCP → Add server:
-
-```json
-{
-  "prompt-optimizer": {
-    "command": "prompt-optimizer-mcp",
-    "args": []
-  }
-}
-```
-
-Or add to `.cursor/mcp.json` in your project root:
-
-```json
-{
-  "mcpServers": {
-    "prompt-optimizer": {
-      "command": "prompt-optimizer-mcp"
-    }
-  }
-}
-```
-</details>
-
-<details>
-<summary><strong>Claude Desktop</strong></summary>
-
-Add to `claude_desktop_config.json`:
-
-```json
-{
-  "mcpServers": {
-    "prompt-optimizer": {
-      "command": "prompt-optimizer-mcp"
-    }
-  }
-}
-```
-</details>
-
-<details>
-<summary><strong>Any MCP client (manual stdio)</strong></summary>
-
-```bash
-prompt-optimizer-mcp
-```
-
-The server communicates over stdio. Point any MCP client at this command.
-</details>
-
----
-
-## Before/After
-
-### Input (7 words, score: 5/50)
+| | Prompt | Score |
+|---|---|---|
+| **Before** | `write some code to handle users` | **10 / 100** |
+| **After (rules)** | Role injected · vague words replaced · format defined · constraints added | **60 / 100** |
+| **After (hybrid)** | LLM refines weak dimensions on top of rule output | **85+ / 100** |
 
 ```
-make an api for users
-```
+# Before
+write some code to handle users
 
-### Output after `optimize_prompt_loop` (score: 42/50, +37 points)
+# After (rules engine, no API key needed)
+You are an expert assistant with deep knowledge in software engineering and best practices.
 
-```
-You are a senior Python engineer with expertise in clean architecture,
-type-safe design, and Pythonic idioms.
+Write code to handle users with a specific output.
 
-## Objective
-Implement a specific output for users.
-
-## Constraints and Best Practices
-- Add full type hints to every function signature (PEP 484)
+Python Best Practices to Follow:
+- Add full type hints to all function signatures (PEP 484)
 - Write Google-style docstrings for all public functions
 - Follow PEP 8: snake_case for functions, PascalCase for classes
 - Use dataclasses or Pydantic models for structured data
-- Handle exceptions explicitly; avoid bare except clauses
+- Write pytest unit tests; use fixtures for shared setup
 
-## Output Format
-Provide the implementation as one or more Python files with module-level
-docstrings. Include a corresponding test file using pytest.
+Please format your response with clear sections.
+Use markdown headings for each section and include code examples where relevant.
 
-## Test-Driven Development
-Write tests using pytest first, then implement the code to make them pass.
-```
-
-**Changes made (visible in diff output):**
-```diff
--make an api for users
-+You are a senior Python engineer with expertise in clean architecture,
-+type-safe design, and Pythonic idioms.
-+
-+## Objective
-+Implement a specific output for users.
-...
+Constraints:
+- Keep the solution concise and focused on the stated objective.
+- Do not introduce unnecessary dependencies.
+- Handle edge cases and error conditions explicitly.
 ```
 
 ---
 
-## Tools
+## Quick Install
 
-### 1. `optimize_prompt` — 1-Click Optimization
+```bash
+# Offline mode — no API key needed, rule engine only
+pip install prompt-optimizer-mcp
 
-Single-pass deterministic rewrite. Instant.
+# With Anthropic LLM enhancement
+pip install "prompt-optimizer-mcp[anthropic]"
 
-| Input | Type | Required |
-|-------|------|----------|
-| `prompt` | string | Yes |
-| `language` | string | No — `python`, `dotnet`, `go`, `java`, `typescript` (+ aliases: `py`, `c#`, `js`, `ts`, `golang`) |
-| `context` | string | No |
+# With OpenAI LLM enhancement
+pip install "prompt-optimizer-mcp[openai]"
 
-**Returns:** `optimized_prompt`, `changes_summary`, `score_before`, `score_after`, `diff`
-
----
-
-### 2. `optimize_prompt_loop` — Agentic Iterative Loop
-
-Runs multiple rounds, stops when good enough. Use this in pipelines.
-
-| Input | Type | Default |
-|-------|------|---------|
-| `prompt` | string | required |
-| `language` | string | — |
-| `context` | string | — |
-| `target_score` | integer | 40 |
-| `max_iterations` | integer | 5 |
-| `min_improvement` | integer | 2 |
-
-**Stop conditions (first one wins):**
-1. `score >= target_score` — quality goal achieved
-2. `improvement < min_improvement` for 2 consecutive rounds — diminishing returns
-3. `iterations >= max_iterations` — safety cap
-
-**Returns:** `final_prompt`, `initial_score`, `final_score`, `total_improvement`, `iterations_used`, `stopped_reason`, `history[]` (per-round: `score`, `improvement`, `changes`, `diff`)
+# Both providers
+pip install "prompt-optimizer-mcp[llm]"
+```
 
 ---
 
-### 3. `analyze_prompt` — Quality Scorer
+## MCP Client Configuration
 
-Scores a prompt across 5 dimensions (0-10 each, total 0-50).
+### Claude Code (`~/.claude.json`)
 
-| Input | Type | Required |
-|-------|------|----------|
-| `prompt` | string | Yes |
+```json
+{
+  "mcpServers": {
+    "prompt-optimizer": {
+      "command": "prompt-optimizer-mcp",
+      "env": {
+        "PROMPT_OPTIMIZER_LLM": "true",
+        "ANTHROPIC_API_KEY": "sk-ant-...",
+        "PROMPT_OPTIMIZER_THRESHOLD": "70"
+      }
+    }
+  }
+}
+```
 
-**Returns:** `total_score`, `dimensions` (clarity, specificity, context, output_definition, actionability), `weak_spots`, `suggestions`
+### Cursor (`.cursor/mcp.json`)
+
+```json
+{
+  "mcpServers": {
+    "prompt-optimizer": {
+      "command": "prompt-optimizer-mcp",
+      "env": {
+        "PROMPT_OPTIMIZER_LLM": "false"
+      }
+    }
+  }
+}
+```
+
+### Environment Variables
+
+| Variable | Default | Description |
+|---|---|---|
+| `PROMPT_OPTIMIZER_LLM` | `false` | Enable LLM enhancement layer |
+| `PROMPT_OPTIMIZER_PROVIDER` | `anthropic` | `anthropic` or `openai` |
+| `PROMPT_OPTIMIZER_API_KEY` | — | API key (falls back to `ANTHROPIC_API_KEY` / `OPENAI_API_KEY`) |
+| `PROMPT_OPTIMIZER_MODEL` | `claude-haiku-4-*` | Override model name |
+| `PROMPT_OPTIMIZER_THRESHOLD` | `80` | Normalized score (0-100) below which LLM is triggered |
 
 ---
 
-### 4. `decompose_task` — Agentic Subtask Breakdown
+## Architecture: Hybrid Engine
 
-Breaks a complex task into sequential, dependency-tracked subtasks.
-
-| Input | Type | Default |
-|-------|------|---------|
-| `task` | string | required |
-| `agent_type` | string | `generic` — also: `code_agent`, `devops_agent` |
-
-**Returns:** `subtasks[]`, `execution_order`, `total_complexity`
+```
+Input Prompt
+     │
+     ▼
+Layer 1: Rule Engine (always runs, zero latency, no API key)
+  • Vague word replacement
+  • Role injection
+  • Language-specific best practices
+  • Output format enforcement
+  • Constraint section
+     │
+     ▼
+score_normalized >= threshold? ──Yes──► Return result (engine_used: "rules")
+     │ No
+     ▼
+Layer 2: LLM Enhancement (optional, requires API key)
+  • Focused improvement on weak dimensions only
+  • Minimal, purposeful changes
+  • Falls back to rule output on any error
+     │
+     ▼
+Return result (engine_used: "hybrid")
+```
 
 ---
 
-### 5. `generate_code_prompt` — Language-Specific Code Prompt
+## Tool Reference
 
-Generates a production-ready code generation prompt with role, best practices, style guide, and TDD instructions.
+### `optimize_prompt`
+Improve a single prompt. Returns optimized text, score comparison, line-by-line diff, and engine used.
 
-| Input | Type | Required |
-|-------|------|----------|
-| `objective` | string | Yes |
-| `language` | string | Yes |
-| `framework` | string | No |
-| `style_guide` | string | No |
+```json
+{
+  "prompt": "write some code to handle users",
+  "language": "python",
+  "context": "This is a FastAPI service on AWS Lambda."
+}
+```
 
-**Returns:** `prompt`, `metadata` (language, framework, estimated_tokens)
+**Returns:** `optimized_prompt`, `score_before`, `score_after`, `score_normalized_before`, `score_normalized_after`, `engine_used`, `diff`, `changes_summary`
 
 ---
 
-## Prompt Templates (MCP Resources)
+### `analyze_prompt`
+Score a prompt across 5 dimensions (0-10 each). Identify weak spots before sending to a model.
 
-Exposed as MCP resources — your AI client can read them directly.
+```json
+{ "prompt": "implement a login system" }
+```
 
-| URI | Description |
-|-----|-------------|
-| `prompt-template://agentic_task_decomposition` | Chain-of-thought task decomposition meta-prompt |
-| `prompt-template://code_generation` | Universal code generation template |
-| `prompt-template://debug_analysis` | Hypothesis-first debugging template |
-| `prompt-template://dotnet_code_review` | Structured C# / .NET code review |
+**Returns:** `total_score` (0-50), `score_normalized` (0-100), `dimensions`, `weak_spots`, `suggestions`
+
+---
+
+### `optimize_prompt_loop`
+Iteratively optimize until a target score is reached or diminishing returns kick in. Full history included.
+
+```json
+{
+  "prompt": "make an api for users",
+  "target_score": 40,
+  "max_iterations": 5,
+  "language": "python"
+}
+```
+
+**Returns:** `final_prompt`, `initial_score`, `final_score`, `score_normalized_before`, `score_normalized_after`, `engine_used`, `stopped_reason`, `history`
+
+---
+
+### `optimize_and_run` ⚡ Meta-tool
+One call: optimize → decompose → generate code prompts per subtask. Everything an agent needs to begin execution.
+
+```json
+{
+  "task": "build a user auth service",
+  "language": "python",
+  "agent_type": "code_agent"
+}
+```
+
+**Returns:** `optimized_task`, `optimization_stats`, `decomposition`, `subtask_prompts` (each with `code_prompt` + `usage_hint`)
+
+---
+
+### `decompose_task`
+Break a complex task into ordered, atomic subtasks with dependency tracking.
+
+```json
+{
+  "task": "Implement JWT authentication with refresh token rotation",
+  "agent_type": "code_agent"
+}
+```
+
+**Returns:** `subtasks` (with `id`, `title`, `prompt`, `dependencies`, `estimated_complexity`), `execution_order`, `total_complexity`
+
+---
+
+### `generate_code_prompt`
+Generate a production-ready, language-specific code prompt with role, constraints, and best practices.
+
+```json
+{
+  "objective": "implement a rate limiter using Redis",
+  "language": "python",
+  "framework": "FastAPI"
+}
+```
+
+---
+
+### `start_optimization_session` / `continue_optimization_session`
+Stateful, multi-turn optimization with optional agent feedback between rounds. Sessions expire after 30 minutes.
+
+```json
+// Start
+{ "task": "refactor the database layer", "target_score": 80 }
+
+// Continue
+{ "session_id": "abc-123", "feedback": "Also add retry logic for transient errors." }
+```
+
+---
+
+### `prompt-optimizer://health` (Resource)
+Read the server health status, engine mode, and available tool list.
 
 ---
 
 ## CLI Usage
 
-Works without any MCP client — just `pip install` and run.
-
 ```bash
-# 1-click optimization
-prompt-optimizer "write an api for user management"
+# Analyze a prompt
+prompt-optimizer analyze "fix the bug"
 
-# Iterative loop
-prompt-optimizer --loop "write an api" --target-score 40
+# Optimize with language hints
+prompt-optimizer optimize "build a REST API" --language python
 
-# Language-aware
-prompt-optimizer "build a REST API" --language python
+# Full iterative loop
+prompt-optimizer optimize "write a cache module" --loop --target-score 40
 
-# Show analysis before optimizing
-prompt-optimizer --analyze "my prompt" --loop
-
-# JSON output for CI/pipelines
-prompt-optimizer --loop "my prompt" --json
-
-# Pipe mode
-echo "fix the user login bug" | prompt-optimizer --loop --json
+# JSON output for piping
+prompt-optimizer optimize "describe the task" --json | jq .optimization.score_after
 ```
 
 ---
@@ -317,62 +264,39 @@ echo "fix the user login bug" | prompt-optimizer --loop --json
 ## Development
 
 ```bash
-make install-dev  # pip install -e ".[dev]"
-make test         # pytest with coverage
-make lint         # ruff check
-make typecheck    # mypy --strict
-make run          # start the MCP server
+git clone https://github.com/yusufkucukates/mcp-prompt-optimizer
+cd mcp-prompt-optimizer
+pip install -e ".[dev]"
+
+make test        # pytest with coverage
+make lint        # ruff check
+make typecheck   # mypy --strict
+make check       # all three
 ```
 
-**Architecture:** Pure functions in `src/tools/` (no side effects, fully testable). Thin MCP adapter in `src/server.py`. All optimization is deterministic — same input always produces the same output.
+---
 
-**Test suite:** 139 tests across tools, loop engine, diff utility, template manager, and CLI.
+## Why This Exists
+
+Most AI agents send raw, vague prompts directly to the model. A prompt that scores 10/100 produces output that scores 10/100. This server intercepts that before it happens.
+
+- **Zero-dependency offline mode** — the rule engine runs without any API calls, adding < 5ms latency.
+- **Optional LLM enhancement** — plug in Anthropic or OpenAI to close the remaining gap on hard prompts.
+- **8 composable tools** — from single-shot optimization to full agentic pipelines with decomposition.
+- **Works where you work** — Claude Code, Cursor, any MCP-compatible client.
 
 ---
 
 ## Roadmap
 
-### v0.1.0 (current)
-- [x] `analyze_prompt` — 5-dimension quality scorer
-- [x] `optimize_prompt` — 1-click deterministic rewrite with diff
-- [x] `optimize_prompt_loop` — agentic iterative loop with 3 stop conditions
-- [x] `decompose_task` — subtask breakdown for code/devops/generic agents
-- [x] `generate_code_prompt` — language-specific code generation prompts
-- [x] Standalone CLI (`prompt-optimizer`)
-- [x] 4 MCP resource templates
-- [x] Language alias normalization (`c#`, `js`, `py`, `golang`, ...)
-- [x] Input validation (TypeError, ValueError) across all tools
-- [x] CI pipeline (ruff, mypy, pytest on Python 3.11/3.12/3.13)
-- [x] 139 unit tests
-
-### v1.0.0 (weeks 3-6)
-- [ ] HTTP/SSE transport for webhook and pipeline integration
-- [ ] MCP `prompts` capability (templates as first-class prompts)
-- [ ] GitHub Actions action: `uses: prompt-optimizer-mcp/action@v1`
-- [ ] 95%+ test coverage with server integration tests
-- [ ] Auto-release to PyPI on git tag
-- [ ] Terminal recording GIF for README
-
-### v1.1.0 (weeks 7-12)
-- [ ] YAML custom rule system — add your own optimization rules
-- [ ] Community rule packs via `rules/` directory
-- [ ] Prompt versioning to disk (save/load sessions)
-- [ ] Domain-specific scoring profiles (code vs. writing prompts)
-
----
-
-## Contributing
-
-We welcome optimization rules, new templates, new language configs, and bug fixes.
-See [CONTRIBUTING.md](CONTRIBUTING.md) for the full guide.
-
-**Good first issues:**
-- Add a vague-word replacement rule in `src/tools/optimize_prompt.py`
-- Improve a scoring dimension pattern in `src/tools/analyze_prompt.py`
-- Add a new Markdown prompt template in `templates/`
+- [ ] Streaming optimization (SSE for long prompts)
+- [ ] Custom rule sets via TOML configuration
+- [ ] Prompt library with searchable templates
+- [ ] Team analytics: track score distributions across sessions
+- [ ] VS Code extension for inline prompt scoring
 
 ---
 
 ## License
 
-MIT — see [LICENSE](LICENSE).
+MIT © [Yusuf Kucukates](https://github.com/yusufkucukates)
