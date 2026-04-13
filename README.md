@@ -1,7 +1,6 @@
 # mcp-prompt-optimizer
 
 [![CI](https://github.com/yusufkucukates/mcp-prompt-optimizer/actions/workflows/ci.yml/badge.svg)](https://github.com/yusufkucukates/mcp-prompt-optimizer/actions/workflows/ci.yml)
-[![PyPI](https://img.shields.io/pypi/v/prompt-optimizer-mcp)](https://pypi.org/project/prompt-optimizer-mcp/)
 [![Python](https://img.shields.io/badge/python-3.11%2B-blue)](https://www.python.org/)
 [![License: MIT](https://img.shields.io/badge/license-MIT-green)](LICENSE)
 [![Works with Claude Code](https://img.shields.io/badge/Claude_Code-compatible-blueviolet)](https://docs.anthropic.com/en/docs/claude-code)
@@ -50,17 +49,16 @@ Constraints:
 ## Quick Install
 
 ```bash
-# Offline mode — no API key needed, rule engine only
-pip install prompt-optimizer-mcp
+# Clone and install locally (PyPI publish coming soon)
+git clone https://github.com/yusufkucukates/mcp-prompt-optimizer
+cd mcp-prompt-optimizer
+pip install -e .
 
 # With Anthropic LLM enhancement
-pip install "prompt-optimizer-mcp[anthropic]"
+pip install -e ".[anthropic]"
 
 # With OpenAI LLM enhancement
-pip install "prompt-optimizer-mcp[openai]"
-
-# Both providers
-pip install "prompt-optimizer-mcp[llm]"
+pip install -e ".[openai]"
 ```
 
 ---

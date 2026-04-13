@@ -19,6 +19,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [0.2.0] - 2026-04-13
+
+### Added
+- Hybrid engine: rule engine (Layer 1) + optional LLM enhancement (Layer 2)
+- Generic LLM provider interface with Anthropic and OpenAI implementations
+- `score_normalized` (0-100) field in all tool responses alongside existing 0-50 score
+- `engine_used` field (`"rules"` or `"hybrid"`) in all optimization tool responses
+- `optimize_and_run` meta-tool: optimize → decompose → generate code prompts in one call
+- `start_optimization_session` and `continue_optimization_session` stateful session tools
+- Centralized input validation (`src/tools/validation.py`) with 50,000-char max-length guard
+- Structured JSON logging to stderr (`src/log.py`)
+- `prompt-optimizer://health` MCP resource (status, version, engine, uptime)
+- LLM-actionable tool descriptions and `usage_hint` field in every tool response
+- Optional dependencies: `pip install prompt-optimizer-mcp[anthropic]`, `[openai]`, `[llm]`
+- `pytest-asyncio` for async tool tests; 204 unit tests total
+
+---
+
 ## [0.1.0] - 2026-04-13
 
 ### Added
@@ -61,5 +79,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Empty URI name guard in `template_uri_to_name` — `prompt-template://` with no name
   raises `ValueError`.
 
-[Unreleased]: https://github.com/yusufkucukates/mcp-prompt-optimizer/compare/v0.1.0...HEAD
+[Unreleased]: https://github.com/yusufkucukates/mcp-prompt-optimizer/compare/v0.2.0...HEAD
+[0.2.0]: https://github.com/yusufkucukates/mcp-prompt-optimizer/compare/v0.1.0...v0.2.0
 [0.1.0]: https://github.com/yusufkucukates/mcp-prompt-optimizer/releases/tag/v0.1.0
