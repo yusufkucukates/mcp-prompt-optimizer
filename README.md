@@ -1,14 +1,16 @@
-# mcp-prompt-optimizer
+# Prompt Optimizer MCP
 
 [![CI](https://github.com/yusufkucukates/mcp-prompt-optimizer/actions/workflows/ci.yml/badge.svg)](https://github.com/yusufkucukates/mcp-prompt-optimizer/actions/workflows/ci.yml)
 [![PyPI](https://img.shields.io/pypi/v/prompt-optimizer-mcp)](https://pypi.org/project/prompt-optimizer-mcp/)
+[![Downloads](https://static.pepy.tech/badge/prompt-optimizer-mcp/month)](https://pepy.tech/project/prompt-optimizer-mcp)
 [![Python](https://img.shields.io/badge/python-3.11%2B-blue)](https://www.python.org/)
 [![License: MIT](https://img.shields.io/badge/license-MIT-green)](LICENSE)
 [![Works with Claude Code](https://img.shields.io/badge/Claude_Code-compatible-blueviolet)](https://docs.anthropic.com/en/docs/claude-code)
+[![Cursor](https://img.shields.io/badge/Cursor-compatible-black)](https://docs.cursor.com/context/model-context-protocol)
 
-**The MCP server that turns vague AI prompts into production-ready instructions — works offline, gets smarter with an API key.**
+> **Score, rewrite, and iteratively optimize AI prompts — inside Claude Code, Cursor, or any MCP client. Offline-first. Zero API key required.**
 
-Stop writing the same boilerplate prompt engineering by hand. This MCP server runs inside Claude Code, Cursor, and any MCP-compatible client. It scores, improves, and decomposes your prompts before they reach any model — so every AI call starts from a higher baseline.
+Weak prompts waste tokens. This MCP server scores your prompt, rewrites it with a deterministic rule engine, and — optionally — polishes weak dimensions with an LLM. Every AI call starts from a higher baseline, so you spend fewer clarification rounds and less output-token budget.
 
 ---
 
@@ -47,22 +49,45 @@ Constraints:
 
 ---
 
+## Why it saves tokens
+
+Weak prompts burn tokens on back-and-forth. A prompt scoring 10/100 typically takes 2–3 clarification rounds before producing something usable; a prompt at 60+/100 usually lands on the first try. Every avoided round saves both input context *and* output tokens — and output tokens are where the cost lives.
+
+**Illustrative math** (Sonnet-class pricing, assumes ~2 rounds avoided):
+
+| | Weak prompt | Optimized prompt |
+|---|---|---|
+| Rounds to usable output | ~2–3 | ~1 |
+| Output tokens per task | 3–4× baseline | 1× baseline |
+| Relative cost per task | high | low |
+
+The rule engine adds ~200 input tokens to the first call but removes thousands of output tokens downstream. For a developer running 100+ agent tasks/day, the cost math favors optimizing first — and the qualitative benefit (less babysitting) is usually the bigger win.
+
+> Numbers vary by model, workload, and prompt style. Run `prompt-optimizer analyze "<your-prompt>"` to see where your own prompts score before committing to a metric.
+
+---
+
 ## Quick Install
 
 ```bash
-# Install from PyPI
+# Option A — zero install (recommended): uvx fetches and runs on demand
+uvx prompt-optimizer-mcp
+
+# Option B — install from PyPI
 pip install prompt-optimizer-mcp
 
-# Or clone and install locally
+# Option C — isolated install via pipx
+pipx install prompt-optimizer-mcp
+
+# Option D — clone for local development
 git clone https://github.com/yusufkucukates/mcp-prompt-optimizer
 cd mcp-prompt-optimizer
 pip install -e .
 
-# With Anthropic LLM enhancement
-pip install -e ".[anthropic]"
-
-# With OpenAI LLM enhancement
-pip install -e ".[openai]"
+# Optional LLM extras (hybrid mode)
+pip install "prompt-optimizer-mcp[anthropic]"   # Claude refinement
+pip install "prompt-optimizer-mcp[openai]"      # OpenAI refinement
+pip install "prompt-optimizer-mcp[llm]"         # both providers
 ```
 
 ---
@@ -81,6 +106,19 @@ pip install -e ".[openai]"
         "ANTHROPIC_API_KEY": "sk-ant-...",
         "PROMPT_OPTIMIZER_THRESHOLD": "70"
       }
+    }
+  }
+}
+```
+
+**Zero-install variant (uvx)** — no `pip install` needed:
+
+```json
+{
+  "mcpServers": {
+    "prompt-optimizer": {
+      "command": "uvx",
+      "args": ["prompt-optimizer-mcp"]
     }
   }
 }
