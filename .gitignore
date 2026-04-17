@@ -96,6 +96,8 @@ MANIFEST
 # Claude Code — personal files only (CLAUDE.md IS committed)
 # =============================================================================
 .claude/todos
+.claude/worktrees/
+.claude/plans/
 CLAUDE.local.md
 
 # =============================================================================
